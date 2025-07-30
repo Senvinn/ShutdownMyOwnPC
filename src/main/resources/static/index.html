@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>关机还是重启？</title>
+    <style>
+        :root {
+            --primary-color: #4a6fa5;
+            --danger-color: #e74c3c;
+            --restart-color: #3498db;
+            --bg-color: #121212;
+            --card-color: #1e1e1e;
+            --text-color: #e0e0e0;
+            --text-muted: #9e9e9e;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            background-color: var(--card-color);
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+            text-align: center;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        p {
+            color: var(--text-muted);
+            margin-bottom: 30px;
+            line-height: 1.5;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            outline: none;
+            text-decoration: none;
+        }
+
+        .btn-danger {
+            background-color: var(--danger-color);
+            color: white;
+        }
+
+        .btn-restart {
+            background-color: var(--restart-color);
+            color: white;
+            margin-left: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-danger:hover {
+            background-color: #c0392b;
+        }
+
+        .btn-restart:hover {
+            background-color: #2980b9;
+        }
+
+        .status {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 6px;
+            display: none;
+        }
+
+        .status.success {
+            background-color: rgba(46, 204, 113, 0.2);
+            color: #2ecc71;
+            display: block;
+        }
+
+        .status.error {
+            background-color: rgba(231, 76, 60, 0.2);
+            color: #e74c3c;
+            display: block;
+        }
+
+        .power-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+            color: var(--danger-color);
+        }
+
+        .restart-icon {
+            color: var(--restart-color);
+        }
+
+        .button-group {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .confirmation {
+            display: none;
+            margin-top: 20px;
+            padding: 15px;
+            background-color: rgba(30, 30, 30, 0.8);
+            border-radius: 8px;
+        }
+
+        .shutdown-confirmation {
+            border-left: 4px solid var(--danger-color);
+        }
+
+        .restart-confirmation {
+            border-left: 4px solid var(--restart-color);
+        }
+
+        .confirmation-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .btn-secondary {
+            background-color: #555;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #444;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="power-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path>
+            <line x1="12" y1="2" x2="12" y2="12"></line>
+        </svg>
+    </div>
+    <h1>关机还是重启？</h1>
+    <p>选择下方操作将发送指令，确保所有工作已保存！！！</p>
+
+    <div class="button-group">
+        <button id="shutdownBtn" class="btn btn-danger">关机</button>
+        <button id="restartBtn" class="btn btn-restart">重启</button>
+    </div>
+
+    <div id="shutdownConfirmation" class="confirmation shutdown-confirmation">
+        <p>确定要关闭电脑吗？所有未保存的工作将会丢失。</p>
+        <div class="confirmation-buttons">
+            <button id="confirmShutdown" class="btn btn-danger">确认关机</button>
+            <button id="cancelShutdown" class="btn btn-secondary">取消</button>
+        </div>
+    </div>
+
+    <div id="restartConfirmation" class="confirmation restart-confirmation">
+        <p>确定要重启电脑吗？所有未保存的工作将会丢失。</p>
+        <div class="confirmation-buttons">
+            <button id="confirmRestart" class="btn btn-restart">确认重启</button>
+            <button id="cancelRestart" class="btn btn-secondary">取消</button>
+        </div>
+    </div>
+
+    <div id="statusMessage" class="status"></div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 获取元素
+        const shutdownBtn = document.getElementById('shutdownBtn');
+        const restartBtn = document.getElementById('restartBtn');
+        const shutdownConfirmation = document.getElementById('shutdownConfirmation');
+        const restartConfirmation = document.getElementById('restartConfirmation');
+        const confirmShutdown = document.getElementById('confirmShutdown');
+        const cancelShutdown = document.getElementById('cancelShutdown');
+        const confirmRestart = document.getElementById('confirmRestart');
+        const cancelRestart = document.getElementById('cancelRestart');
+        const statusMessage = document.getElementById('statusMessage');
+
+        // 关机按钮点击事件
+        shutdownBtn.addEventListener('click', function() {
+            shutdownBtn.style.display = 'none';
+            restartBtn.style.display = 'none';
+            shutdownConfirmation.style.display = 'block';
+        });
+
+        // 取消关机
+        cancelShutdown.addEventListener('click', function() {
+            shutdownConfirmation.style.display = 'none';
+            shutdownBtn.style.display = 'inline-block';
+            restartBtn.style.display = 'inline-block';
+        });
+
+        // 确认关机
+        confirmShutdown.addEventListener('click', function() {
+            sendCommand('/api/shutdown', '关机');
+        });
+
+        // 重启按钮点击
+        restartBtn.addEventListener('click', function() {
+            shutdownBtn.style.display = 'none';
+            restartBtn.style.display = 'none';
+            restartConfirmation.style.display = 'block';
+        });
+
+        // 取消重启
+        cancelRestart.addEventListener('click', function() {
+            restartConfirmation.style.display = 'none';
+            shutdownBtn.style.display = 'inline-block';
+            restartBtn.style.display = 'inline-block';
+        });
+
+        // 确认重启
+        confirmRestart.addEventListener('click', function() {
+            sendCommand('/api/restart', '重启');
+        });
+
+        // 发送命令的通用函数
+        function sendCommand(endpoint, action) {
+            statusMessage.textContent = `正在发送${action}指令...`;
+            statusMessage.className = 'status';
+            statusMessage.style.display = 'block';
+
+            fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+                // .then(response => {
+                //     if (!response.ok) {
+                //         throw new Error('网络响应不正常');
+                //     }
+                //     return response.json();
+                // })
+                // 因为是用自己的电脑充当服务器 关机后服务立马就失效了 所以不论是否请求成功都会返回这个错误
+                .then(data => {
+                    statusMessage.textContent = `${action}指令已发送，电脑将很快${action}~`;
+                    statusMessage.className = 'status success';
+
+                    shutdownConfirmation.style.display = 'none';
+                    restartConfirmation.style.display = 'none';
+                    shutdownBtn.style.display = 'none';
+                    restartBtn.style.display = 'none';
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    statusMessage.textContent = `发送${action}指令失败: ${error.message}`;
+                    statusMessage.className = 'status error';
+
+                    shutdownConfirmation.style.display = 'none';
+                    restartConfirmation.style.display = 'none';
+                    shutdownBtn.style.display = 'inline-block';
+                    restartBtn.style.display = 'inline-block';
+                });
+        }
+    });
+</script>
+</body>
+</html>
